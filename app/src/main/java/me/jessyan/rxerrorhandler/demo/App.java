@@ -22,15 +22,18 @@ import android.util.Log;
 
 import org.json.JSONException;
 
+import java.io.IOException;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 
+import io.reactivex.exceptions.UndeliverableException;
 import me.jessyan.rxerrorhandler.core.RxErrorHandler;
 import me.jessyan.rxerrorhandler.handler.listener.ResponseErrorListener;
+import me.jessyan.rxerrorhandler.handler.listener.UndeliverableErrorListener;
 
 /**
- * ================================================
- * Created by JessYan on 22/09/2017 15:01
+ * ================================================ Created by JessYan on 22/09/2017 15:01
  * <a href="mailto:jess.yan.effort@gmail.com">Contact me</a>
  * <a href="https://github.com/JessYanCoding">Follow me</a>
  * ================================================
@@ -61,6 +64,37 @@ public class App extends Application {
                         Log.w(TAG, "Error handle");
                     }
                 }).build();
+
+        RxErrorHandler.setErrorHandler(new UndeliverableErrorListener() {
+            @Override
+            public void handleError(Throwable e) {
+                if (e instanceof UndeliverableException) {
+                    e = e.getCause();
+                }
+                if ((e instanceof SocketException) || (e instanceof IOException)) {
+                    // fine, irrelevant network problem or API that throws on cancellation
+                    return;
+                }
+                if (e instanceof InterruptedException) {
+                    // fine, some blocking code was interrupted by a dispose call
+                    return;
+                }
+                if ((e instanceof NullPointerException) || (e instanceof IllegalArgumentException)) {
+                    // that's likely a bug in the application
+                    Thread.currentThread()
+                            .getUncaughtExceptionHandler()
+                            .uncaughtException(Thread.currentThread(), e);
+                    return;
+                }
+                if (e instanceof IllegalStateException) {
+                    // that's a bug in RxJava or in a custom operator
+                    Thread.currentThread()
+                            .getUncaughtExceptionHandler()
+                            .uncaughtException(Thread.currentThread(), e);
+                    return;
+                }
+            }
+        });
     }
 
     public RxErrorHandler getRxErrorHandler() {

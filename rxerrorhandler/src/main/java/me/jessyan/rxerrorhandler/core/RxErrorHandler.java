@@ -17,22 +17,36 @@ package me.jessyan.rxerrorhandler.core;
 
 import android.content.Context;
 
+import io.reactivex.annotations.Nullable;
+import io.reactivex.functions.Consumer;
+import io.reactivex.plugins.RxJavaPlugins;
 import me.jessyan.rxerrorhandler.handler.ErrorHandlerFactory;
 import me.jessyan.rxerrorhandler.handler.listener.ResponseErrorListener;
+import me.jessyan.rxerrorhandler.handler.listener.UndeliverableErrorListener;
 
 /**
- * ================================================
- * Created by JessYan on 9/2/2016 13:27
+ * ================================================ Created by JessYan on 9/2/2016 13:27
  * <a href="mailto:jess.yan.effort@gmail.com">Contact me</a>
  * <a href="https://github.com/JessYanCoding">Follow me</a>
  * ================================================
  */
-public class RxErrorHandler {
+public final class RxErrorHandler {
     public final String TAG = this.getClass().getSimpleName();
     private ErrorHandlerFactory mHandlerFactory;
 
     private RxErrorHandler(Builder builder) {
         this.mHandlerFactory = builder.errorHandlerFactory;
+    }
+
+    public static void setErrorHandler(@Nullable final UndeliverableErrorListener listener) {
+        RxJavaPlugins.setErrorHandler(new Consumer<Throwable>() {
+            @Override
+            public void accept(Throwable throwable) throws Exception {
+                if (listener != null) {
+                    listener.handleError(throwable);
+                }
+            }
+        });
     }
 
     public static Builder builder() {
